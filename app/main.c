@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 int match_command(char *input, char *command) {
   for (int i = 0; i < strlen(command); i++) {
@@ -33,8 +34,8 @@ char *parse_env() {
 
 int main() {
   char *path = parse_env();
-  char *pathCopy = strdup(path);
 
+  char *pathCopy = strdup(path);
   char *tokens[100];
   int tok_count = 0;
 
@@ -44,6 +45,12 @@ int main() {
     token = strtok(NULL, ":");
   }
 
+  printf("Tokens:\n");
+  for (int i = 0; i < tok_count; i++) {
+    printf("%s\n", tokens[i]);
+  }
+
+  // main loop
   bool exit_bool = false;
 
   while (!exit_bool) {
@@ -73,17 +80,27 @@ int main() {
           strcat(inner_command, temp);
         }
 
-        if (match_command(inner_command, "echo") == 0) {
-          printf("%s is a shell builtin\n", inner_command);
-        } else if (match_command(inner_command, "exit") == 0) {
-          printf("%s is a shell builtin\n", inner_command);
-        } else if (match_command(inner_command, "type") == 0) {
-          printf("%s is a shell builtin\n", inner_command);
-        } else {
-          printf("%s not found\n", inner_command);
+        bool found = false;
+        char buf[1024];
+        for (int i = 0; i < tok_count; i++) {
+          int len =
+              snprintf(buf, sizeof(buf), "%s/%s", tokens[i], inner_command);
+          if (len >= 0 && access(buf, F_OK) == 0) {
+            printf("%s is %s\n", inner_command, buf);
+            found = true;
+            break;
+          } else {
+            continue;
+          }
         }
 
+        if (!found) {
+          printf("%s: command not found\n", inner_command);
+        }
+
+        // set inner_command to null
         strcpy(inner_command, "");
+
       } else {
         // command not found
         printf("%s: command not found\n", input);
@@ -93,19 +110,3 @@ int main() {
 
   return 0;
 }
-
-// struct dirent **namelist;
-// int n;
-//
-// printf("Tokens:\n");
-// for (int i = 0; i < tok_count; i++) {
-//   printf("%s\n", tokens[i]);
-// }
-// for (int i = 0; i < tok_count; i++) {
-//   n = scandir(tokens[i], &namelist, NULL, alphasort);
-//   while (n--) {
-//     printf("%s\n", namelist[n]->d_name);
-//     free(namelist[n]);
-//   }
-//   free(namelist);
-// }
