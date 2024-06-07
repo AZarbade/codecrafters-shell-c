@@ -46,17 +46,14 @@ int main() {
           strcat(inner_command, temp);
         }
 
-        if (match_command(inner_command, "echo") == 0) {
+        if (match_command(command, "echo") == 0) {
           printf("%s is a shell builtin\n", inner_command);
-        } else if (match_command(inner_command, "exit") == 0) {
-          printf("%s is a shell builtin\n", inner_command);
-        } else if (match_command(inner_command, "type") == 0) {
+        } else if (match_inner_command(command, "exit") == 0) {
           printf("%s is a shell builtin\n", inner_command);
         } else {
-          printf("%s not found\n", inner_command);
+          printf("%s not found", inner_command);
         }
 
-        strcpy(inner_command, "");
       } else {
         // command not found
         printf("%s: command not found\n", input);
