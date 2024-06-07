@@ -1,5 +1,7 @@
+#include <dirent.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 int match_command(char *input, char *command) {
@@ -12,7 +14,36 @@ int match_command(char *input, char *command) {
   return 0;
 }
 
+char *parse_env() {
+  // parse env. variables
+  char *path = getenv("PATH");
+  if (path != NULL) {
+    char *pathCopy = strdup(path);
+    if (pathCopy == NULL) {
+      printf("ERROR: failed to allocated memory for Path\n");
+      return NULL;
+    } else {
+      return pathCopy;
+    }
+  } else {
+    printf("PATH environment variable is not set.\n");
+    return NULL;
+  }
+}
+
 int main() {
+  char *path = parse_env();
+  char *pathCopy = strdup(path);
+
+  char *tokens[100];
+  int tok_count = 0;
+
+  char *token = strtok(pathCopy, ":");
+  while (token != NULL) {
+    tokens[tok_count++] = token;
+    token = strtok(NULL, ":");
+  }
+
   bool exit_bool = false;
 
   while (!exit_bool) {
@@ -35,11 +66,7 @@ int main() {
         }
         printf("\n");
       } else if ((match_command(input, "type") == 0)) {
-        // if echo then echo
-        // if exit then exit
-        // else nonexistent!
-
-        // extract command
+        // extract inner_command
         char inner_command[100];
         for (int i = 5; input[i] != '\0'; i++) {
           char temp[2] = {input[i], '\0'};
@@ -66,3 +93,19 @@ int main() {
 
   return 0;
 }
+
+// struct dirent **namelist;
+// int n;
+//
+// printf("Tokens:\n");
+// for (int i = 0; i < tok_count; i++) {
+//   printf("%s\n", tokens[i]);
+// }
+// for (int i = 0; i < tok_count; i++) {
+//   n = scandir(tokens[i], &namelist, NULL, alphasort);
+//   while (n--) {
+//     printf("%s\n", namelist[n]->d_name);
+//     free(namelist[n]);
+//   }
+//   free(namelist);
+// }
