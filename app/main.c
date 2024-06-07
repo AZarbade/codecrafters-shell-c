@@ -10,7 +10,7 @@ int main() {
   fgets(input, 100, stdin);
 
   // sanitize input
-  input[strlen(input - 1)] = '\0';
+  input[strlen(input) - 1] = '\0';
 
   // Command not found!
   printf("%s: command not found\n", input);
