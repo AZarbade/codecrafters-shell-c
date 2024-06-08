@@ -8,48 +8,45 @@
 char *parse_env() {
   // parse env. variables
   char *path = getenv("PATH");
-  if (path != NULL) {
-    char *pathCopy = strdup(path);
-    if (pathCopy == NULL) {
-      printf("ERROR: failed to allocated memory for Path\n");
-      return NULL;
-    } else {
-      return pathCopy;
-    }
-  } else {
-    printf("PATH environment variable is not set.\n");
+  if (path == NULL) {
+    fprintf(stderr, "PATH environment variable is not set.\n");
     return NULL;
   }
+
+  char *pathCopy = strdup(path);
+  if (pathCopy == NULL) {
+    fprintf(stderr, "Failed to allocate memory for Path.\n");
+  }
+  return pathCopy;
 }
 
 void find_exec(char *command, char *path_tokens[], int tok_count) {
+  // find executables for in given PATHS
   bool found = false;
   char buf[1024];
+
   for (int i = 0; i < tok_count; i++) {
-    int len = snprintf(buf, sizeof(buf), "%s/%s", path_tokens[i], command);
-    if (len >= 0 && access(buf, F_OK) == 0) {
+    snprintf(buf, sizeof(buf), "%s/%s", path_tokens[i], command);
+    if (access(buf, F_OK) == 0) {
       printf("%s is %s\n", command, buf);
       found = true;
       break;
-
-    } else {
-      continue;
     }
   }
 
   if (!found) {
-    printf("%s: command not found\n", command);
+    printf("%s: not found\n", command);
   }
 }
 
 void run_exec(char *inner_command, char *path_tokens[], int tok_count) {
+  // run the given executable in given PATHS
   bool found = false;
   char buf[1024];
   int arg_count = 0;
   char *argv[100];
 
-  argv[arg_count++] = inner_command;
-  char *token = strtok(NULL, " ");
+  char *token = strtok(inner_command, " ");
   while (token != NULL) {
     argv[arg_count++] = token;
     token = strtok(NULL, " ");
@@ -57,12 +54,10 @@ void run_exec(char *inner_command, char *path_tokens[], int tok_count) {
   argv[arg_count] = NULL;
 
   for (int i = 0; i < tok_count; i++) {
-    int len =
-        snprintf(buf, sizeof(buf), "%s/%s", path_tokens[i], inner_command);
-    if (len >= 0 && access(buf, F_OK) == 0) {
-      found = true;
+    snprintf(buf, sizeof(buf), "%s/%s", path_tokens[i], inner_command);
+    if (access(buf, F_OK) == 0) {
       execvp(buf, argv);
-      break;
+      found = true;
     }
   }
 
@@ -75,7 +70,7 @@ int main() {
   char *path = parse_env();
 
   char *pathCopy = strdup(path);
-  char *path_tokens[100];
+  char *path_tokens[1024];
   int tok_count = 0;
 
   char *path_token = strtok(pathCopy, ":");
@@ -84,7 +79,7 @@ int main() {
     path_token = strtok(NULL, ":");
   }
 
-  free(pathCopy);
+  free(path);
 
   // main loop
   bool exit_bool = false;
@@ -102,7 +97,8 @@ int main() {
       char *token = strtok(input, " ");
       char *command = token;
 
-      // TODO: frick you space!!
+      // TODO: frick you space!! This will still pass the tests, but it's
+      // wrong.
       //                        v here figure out a way to include '0'
       if ((strcmp(command, "exit")) == 0) {
         // COMMAND: exit 0
@@ -110,22 +106,36 @@ int main() {
 
       } else if ((strcmp(command, "echo")) == 0) {
         // COMMAND: echo
-        token = strtok(NULL, " ");
-        if (token != NULL) {
-          printf("%s\n", token);
+        char *remainingInput = strtok(NULL, "");
+        if (remainingInput != NULL) {
+          printf("%s\n", remainingInput);
+        } else {
+          printf("\n");
+        }
+
+      } else if ((strcmp(command, "PATH")) == 0) {
+        // COMMAND: PATH
+        for (int i = 0; i < tok_count; i++) {
+          printf("%s\n", path_tokens[i]);
         }
 
       } else if ((strcmp(command, "type") == 0)) {
         // COMMAND: type
         token = strtok(NULL, " ");
 
-        // find executable
-        find_exec(token, path_tokens, tok_count);
+        if (token != NULL && (strcmp(token, "echo") == 0)) {
+          printf("%s is a shell builtin\n", token);
+        } else if (token != NULL && (strcmp(token, "exit") == 0)) {
+          printf("%s is a shell builtin\n", token);
+        } else if (token != NULL && (strcmp(token, "type") == 0)) {
+          printf("%s is a shell builtin\n", token);
+        } else {
+          // find executable
+          find_exec(token, path_tokens, tok_count);
+        }
 
       } else {
         run_exec(input, path_tokens, tok_count);
-        // command not found
-        printf("%s: command not found\n", input);
       }
     }
   }
