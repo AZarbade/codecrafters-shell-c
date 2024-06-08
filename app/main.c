@@ -5,30 +5,23 @@
 #include <string.h>
 #include <unistd.h>
 
+// TODO: use struct to define path
+// TODO: use struct to define user inputs?
+
 char *parse_env() {
   // parse env. variables
   char *sysPath = getenv("PATH");
   char *pathCopy = strdup(sysPath);
 
   if (pathCopy == NULL) {
-    fprintf(stderr, "Failed to get path.\n");
+    fprintf(stderr, "Failed to get global_path.\n");
   }
   return pathCopy;
 }
 
-void find_exec(char *command) {
+void find_exec(char *exec) {
   // find executables for in given PATHS
-  printf("NOT IMPLEMENTED!\n");
-}
-
-void run_exec(char *input) {
-  // run the given executable in given PATHS
-  printf("NOT IMPLEMENTED!\n");
-}
-
-int main() {
   char *path = parse_env();
-  printf("Path parseed\n");
   char *path_tokens[100];
   int path_count = 0;
 
@@ -37,9 +30,72 @@ int main() {
     path_tokens[path_count++] = path_token;
     path_token = strtok(NULL, ":");
   }
-  printf("%s\n", path_tokens[3]);
-  free(path); // TODO: is this vaild?
 
+  bool found = false;
+  char buf[100];
+
+  for (int i = 0; i < path_count; i++) {
+    snprintf(buf, sizeof(buf), "%s/%s", path_tokens[i], exec);
+    if (access(buf, F_OK) == 0) {
+      printf("%s is %s\n", exec, buf);
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    printf("%s: command not found\n", exec);
+  }
+
+  free(path);
+}
+
+void run_exec(char *input) {
+  // run the given executable in given PATHS
+  char *path = parse_env();
+  char *path_tokens[100];
+  int path_count = 0;
+
+  char *path_token = strtok(path, ":");
+  while (path_token != NULL) {
+    path_tokens[path_count++] = path_token;
+    path_token = strtok(NULL, ":");
+  }
+
+  char *token = strtok(input, " ");
+  char *command = token;
+  char *arguments = strtok(NULL, "");
+  char *args[100];
+  int args_count = 0;
+
+  char *args_token = strtok(arguments, " ");
+  while (args_token != NULL) {
+    args[args_count++] = args_token;
+    args_token = strtok(NULL, " ");
+  }
+  args[args_count] = NULL;
+
+  // bool found = false;
+  // char buf[100];
+  //
+  // for (int i = 0; i < path_count; i++) {
+  //   snprintf(buf, sizeof(buf), "%s/%s", path_tokens[i], command);
+  //   if ((access(buf, F_OK | X_OK) == 0)) {
+  //     // execvp(buf, args); // searches PATH for executables then executes.
+  //     execv(buf, args); // have to provide full PATH of executables.
+  //     found = true;
+  //     break;
+  //   }
+  // }
+  //
+  // if (!found) {
+  //   printf("%s: command not found\n", command);
+  // }
+  //
+  // free(path);
+}
+
+int main() {
   // main loop
   bool exit = false;
   while (!exit) {
@@ -84,7 +140,6 @@ int main() {
           printf("%s is a shell builtin\n", exec);
 
         } else {
-          // Find exec in Path
           find_exec(exec);
         }
       }
