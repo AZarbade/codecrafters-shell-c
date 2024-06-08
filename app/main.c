@@ -5,16 +5,6 @@
 #include <string.h>
 #include <unistd.h>
 
-int match_command(char *input, char *command) {
-  for (int i = 0; i < strlen(command); i++) {
-    if (input[i] != command[i]) {
-      return 1;
-    }
-  }
-
-  return 0;
-}
-
 char *parse_env() {
   // parse env. variables
   char *path = getenv("PATH");
@@ -32,13 +22,13 @@ char *parse_env() {
   }
 }
 
-void find_exec(char *inner_command, char *tokens[], int tok_count) {
+void find_exec(char *command, char *path_tokens[], int tok_count) {
   bool found = false;
   char buf[1024];
   for (int i = 0; i < tok_count; i++) {
-    int len = snprintf(buf, sizeof(buf), "%s/%s", tokens[i], inner_command);
+    int len = snprintf(buf, sizeof(buf), "%s/%s", path_tokens[i], command);
     if (len >= 0 && access(buf, F_OK) == 0) {
-      printf("%s is %s\n", inner_command, buf);
+      printf("%s is %s\n", command, buf);
       found = true;
       break;
 
@@ -48,25 +38,31 @@ void find_exec(char *inner_command, char *tokens[], int tok_count) {
   }
 
   if (!found) {
-    printf("%s: command not found\n", inner_command);
+    printf("%s: command not found\n", command);
   }
 }
 
-void run_exec(char *inner_command, char *tokens[], int tok_count) {
+void run_exec(char *inner_command, char *path_tokens[], int tok_count) {
   bool found = false;
   char buf[1024];
+  int arg_count = 0;
+  char *argv[100];
+
+  argv[arg_count++] = inner_command;
+  char *token = strtok(NULL, " ");
+  while (token != NULL) {
+    argv[arg_count++] = token;
+    token = strtok(NULL, " ");
+  }
+  argv[arg_count] = NULL;
+
   for (int i = 0; i < tok_count; i++) {
-    int len = snprintf(buf, sizeof(buf), "%s/%s", tokens[i], inner_command);
+    int len =
+        snprintf(buf, sizeof(buf), "%s/%s", path_tokens[i], inner_command);
     if (len >= 0 && access(buf, F_OK) == 0) {
       found = true;
-
-      char *args[] = {NULL};
-      execv(buf, args);
-
+      execvp(buf, argv);
       break;
-
-    } else {
-      continue;
     }
   }
 
@@ -79,18 +75,13 @@ int main() {
   char *path = parse_env();
 
   char *pathCopy = strdup(path);
-  char *tokens[100];
+  char *path_tokens[100];
   int tok_count = 0;
 
-  char *token = strtok(pathCopy, ":");
-  while (token != NULL) {
-    tokens[tok_count++] = token;
-    token = strtok(NULL, ":");
-  }
-
-  printf("Tokens:\n");
-  for (int i = 0; i < tok_count; i++) {
-    printf("%s\n", tokens[i]);
+  char *path_token = strtok(pathCopy, ":");
+  while (path_token != NULL) {
+    path_tokens[tok_count++] = path_token;
+    path_token = strtok(NULL, ":");
   }
 
   free(pathCopy);
@@ -101,42 +92,38 @@ int main() {
   while (!exit_bool) {
     printf("$ ");
     fflush(stdout);
-    char input[100];
 
+    char input[100];
     // input Non-Null check
     if (fgets(input, 100, stdin) != NULL) {
       // input sanitization
       input[strlen(input) - 1] = '\0';
 
-      if ((match_command(input, "exit 0")) == 0) {
-        // exit condition check
+      char *token = strtok(input, " ");
+      char *command = token;
+
+      // TODO: frick you space!!
+      //                        v here figure out a way to include '0'
+      if ((strcmp(command, "exit")) == 0) {
+        // COMMAND: exit 0
         exit_bool = true;
 
-      } else if ((match_command(input, "echo")) == 0) {
-        // command: echo
-        // TODO: get rid of hardcoded command count
-        //           v
-        for (int i = 5; i < strlen(input); i++) {
-          printf("%c", input[i]);
+      } else if ((strcmp(command, "echo")) == 0) {
+        // COMMAND: echo
+        token = strtok(NULL, " ");
+        if (token != NULL) {
+          printf("%s\n", token);
         }
-        printf("\n");
 
-      } else if ((match_command(input, "type") == 0)) {
-        // extract inner_command
-        char inner_command[100];
-        for (int i = 5; input[i] != '\0'; i++) {
-          char temp[2] = {input[i], '\0'};
-          strcat(inner_command, temp);
-        }
+      } else if ((strcmp(command, "type") == 0)) {
+        // COMMAND: type
+        token = strtok(NULL, " ");
 
         // find executable
-        find_exec(inner_command, tokens, tok_count);
-
-        // set inner_command to null
-        strcpy(inner_command, "");
+        find_exec(token, path_tokens, tok_count);
 
       } else {
-        run_exec(input, tokens, tok_count);
+        run_exec(input, path_tokens, tok_count);
         // command not found
         printf("%s: command not found\n", input);
       }
