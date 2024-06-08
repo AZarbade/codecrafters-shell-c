@@ -7,136 +7,90 @@
 
 char *parse_env() {
   // parse env. variables
-  char *path = getenv("PATH");
-  if (path == NULL) {
-    fprintf(stderr, "PATH environment variable is not set.\n");
-    return NULL;
-  }
+  char *sysPath = getenv("PATH");
+  char *pathCopy = strdup(sysPath);
 
-  char *pathCopy = strdup(path);
   if (pathCopy == NULL) {
-    fprintf(stderr, "Failed to allocate memory for Path.\n");
+    fprintf(stderr, "Failed to get path.\n");
   }
   return pathCopy;
 }
 
-void find_exec(char *command, char *path_tokens[], int tok_count) {
+void find_exec(char *command) {
   // find executables for in given PATHS
-  bool found = false;
-  char buf[1024];
-
-  for (int i = 0; i < tok_count; i++) {
-    snprintf(buf, sizeof(buf), "%s/%s", path_tokens[i], command);
-    if (access(buf, F_OK) == 0) {
-      printf("%s is %s\n", command, buf);
-      found = true;
-      break;
-    }
-  }
-
-  if (!found) {
-    printf("%s: not found\n", command);
-  }
+  printf("NOT IMPLEMENTED!\n");
 }
 
-void run_exec(char *inner_command, char *path_tokens[], int tok_count) {
+void run_exec(char *input) {
   // run the given executable in given PATHS
-  bool found = false;
-  char buf[1024];
-  int arg_count = 0;
-  char *argv[100];
-
-  char *token = strtok(inner_command, " ");
-  while (token != NULL) {
-    argv[arg_count++] = token;
-    token = strtok(NULL, " ");
-  }
-  argv[arg_count] = NULL;
-
-  for (int i = 0; i < tok_count; i++) {
-    snprintf(buf, sizeof(buf), "%s/%s", path_tokens[i], inner_command);
-    if (access(buf, F_OK) == 0) {
-      execvp(buf, argv);
-      found = true;
-    }
-  }
-
-  if (!found) {
-    printf("%s: command not found\n", inner_command);
-  }
+  printf("NOT IMPLEMENTED!\n");
 }
 
 int main() {
   char *path = parse_env();
+  printf("Path parseed\n");
+  char *path_tokens[100];
+  int path_count = 0;
 
-  char *pathCopy = strdup(path);
-  char *path_tokens[1024];
-  int tok_count = 0;
-
-  char *path_token = strtok(pathCopy, ":");
+  char *path_token = strtok(path, ":");
   while (path_token != NULL) {
-    path_tokens[tok_count++] = path_token;
+    path_tokens[path_count++] = path_token;
     path_token = strtok(NULL, ":");
   }
-
-  free(path);
+  printf("%s\n", path_tokens[3]);
+  free(path); // TODO: is this vaild?
 
   // main loop
-  bool exit_bool = false;
-
-  while (!exit_bool) {
+  bool exit = false;
+  while (!exit) {
     printf("$ ");
     fflush(stdout);
-
     char input[100];
+
     // input Non-Null check
     if (fgets(input, 100, stdin) != NULL) {
       // input sanitization
       input[strlen(input) - 1] = '\0';
+    }
 
-      char *token = strtok(input, " ");
-      char *command = token;
+    // Seperating command and its arguments
+    char *token = strtok(input, " ");
+    char *command = token;
+    char *arguments = strtok(NULL, "");
+    printf("command: %s\n", command);
+    printf("args: %s\n", arguments);
+    printf("----------\n");
 
-      // TODO: frick you space!! This will still pass the tests, but it's
-      // wrong.
-      //                        v here figure out a way to include '0'
-      if ((strcmp(command, "exit")) == 0) {
-        // COMMAND: exit 0
-        exit_bool = true;
+    if ((strcmp(command, "exit") == 0)) {
+      exit = true;
 
-      } else if ((strcmp(command, "echo")) == 0) {
-        // COMMAND: echo
-        char *remainingInput = strtok(NULL, "");
-        if (remainingInput != NULL) {
-          printf("%s\n", remainingInput);
-        } else {
-          printf("\n");
-        }
+    } else if ((strcmp(command, "echo") == 0)) {
+      printf("%s\n", arguments);
 
-      } else if ((strcmp(command, "PATH")) == 0) {
-        // COMMAND: PATH
-        for (int i = 0; i < tok_count; i++) {
-          printf("%s\n", path_tokens[i]);
-        }
-
-      } else if ((strcmp(command, "type") == 0)) {
-        // COMMAND: type
-        token = strtok(NULL, " ");
-
-        if (token != NULL && (strcmp(token, "echo") == 0)) {
-          printf("%s is a shell builtin\n", token);
-        } else if (token != NULL && (strcmp(token, "exit") == 0)) {
-          printf("%s is a shell builtin\n", token);
-        } else if (token != NULL && (strcmp(token, "type") == 0)) {
-          printf("%s is a shell builtin\n", token);
-        } else {
-          // find executable
-          find_exec(token, path_tokens, tok_count);
-        }
+    } else if ((strcmp(command, "type") == 0)) {
+      if (arguments == NULL) {
+        printf("- usage: type <command>\n");
 
       } else {
-        run_exec(input, path_tokens, tok_count);
+        char *exec = strtok(arguments, " ");
+        // Check for builtin commands
+        if (exec != NULL && (strcmp(exec, "echo") == 0)) {
+          printf("%s is a shell builtin\n", exec);
+
+        } else if (exec != NULL && (strcmp(exec, "exit") == 0)) {
+          printf("%s is a shell builtin\n", exec);
+
+        } else if (exec != NULL && (strcmp(exec, "type") == 0)) {
+          printf("%s is a shell builtin\n", exec);
+
+        } else {
+          // Find exec in Path
+          find_exec(exec);
+        }
       }
+
+    } else {
+      run_exec(command);
     }
   }
 
