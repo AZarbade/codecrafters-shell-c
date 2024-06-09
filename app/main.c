@@ -93,6 +93,8 @@ int main() {
   while (!exit) {
     printf("$ ");
     fflush(stdout);
+    char buf_cwd[100];
+    char *spawn_dir = getcwd(buf_cwd, sizeof(buf_cwd));
     char input[100];
 
     // input Non-Null check
@@ -105,8 +107,9 @@ int main() {
     char *token = strtok(input, " ");
     char *command = token;
     char *arguments = strtok(NULL, "");
-    // printf("command: %s\n", command);
-    // printf("args: %s\n", arguments);
+    // printf("command: %s\n", &*command);
+    // printf("args: %s\n", &*arguments);
+    // printf("spawn dir: %s\n", &*spawn_dir);
     // printf("----------\n");
 
     if ((strcmp(command, "exit") == 0)) {
@@ -120,9 +123,21 @@ int main() {
       printf("%s\n", getcwd(cwd, sizeof(cwd)));
 
     } else if ((strcmp(command, "cd") == 0)) {
-      if (chdir(arguments) != 0) {
+      if (strcmp(&arguments[0], "~") == 0) {
+        char *home = getenv("HOME");
+        if (home != NULL) {
+          if (chdir(home) != 0) {
+            perror("cd");
+          }
+        }
+
+      } else if (chdir(arguments) == 0) {
+        // char pwd[100];
+        // printf("%s\n", getcwd(pwd, sizeof(pwd)));
+        continue;
+      } else {
         printf("%s: %s: No such file or directory\n", command, arguments);
-      }
+      };
 
     } else if ((strcmp(command, "type") == 0)) {
       if (arguments == NULL) {
@@ -149,6 +164,5 @@ int main() {
       run_exec(command, arguments);
     }
   }
-
   return 0;
 }
