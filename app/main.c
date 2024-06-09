@@ -45,10 +45,8 @@ void find_exec(char *exec) {
   }
 
   if (!found) {
-    printf("%s: command not found\n", exec);
+    printf("%s: not found\n", exec);
   }
-
-  free(path);
 }
 
 void run_exec(char *command, char *arguments) {
