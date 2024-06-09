@@ -93,8 +93,6 @@ int main() {
   while (!exit) {
     printf("$ ");
     fflush(stdout);
-    char buf_cwd[100];
-    char *spawn_dir = getcwd(buf_cwd, sizeof(buf_cwd));
     char input[100];
 
     // input Non-Null check
@@ -132,8 +130,6 @@ int main() {
         }
 
       } else if (chdir(arguments) == 0) {
-        // char pwd[100];
-        // printf("%s\n", getcwd(pwd, sizeof(pwd)));
         continue;
       } else {
         printf("%s: %s: No such file or directory\n", command, arguments);
