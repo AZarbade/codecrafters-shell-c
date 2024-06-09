@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 // TODO: use struct to define path
@@ -50,49 +51,42 @@ void find_exec(char *exec) {
   free(path);
 }
 
-void run_exec(char *input) {
+void run_exec(char *command, char *arguments) {
   // run the given executable in given PATHS
   char *path = parse_env();
   char *path_tokens[100];
   int path_count = 0;
-
   char *path_token = strtok(path, ":");
   while (path_token != NULL) {
     path_tokens[path_count++] = path_token;
     path_token = strtok(NULL, ":");
   }
 
-  char *token = strtok(input, " ");
-  char *command = token;
-  char *arguments = strtok(NULL, "");
-  char *args[100];
-  int args_count = 0;
+  bool found = false;
+  char buf[100];
 
-  char *args_token = strtok(arguments, " ");
-  while (args_token != NULL) {
-    args[args_count++] = args_token;
-    args_token = strtok(NULL, " ");
+  for (int i = 0; i < path_count; i++) {
+    snprintf(buf, sizeof(buf), "%s/%s", path_tokens[i], command);
+    if ((access(buf, F_OK | X_OK) == 0)) {
+      pid_t pid = fork();
+      if (pid == 0) {
+        execl(buf, command, arguments, NULL);
+        perror("execl");
+        exit(EXIT_FAILURE);
+      } else if (pid > 0) {
+        int status;
+        waitpid(pid, &status, 0);
+        found = true;
+        break;
+      } else {
+        perror("fork");
+      }
+    }
   }
-  args[args_count] = NULL;
 
-  // bool found = false;
-  // char buf[100];
-  //
-  // for (int i = 0; i < path_count; i++) {
-  //   snprintf(buf, sizeof(buf), "%s/%s", path_tokens[i], command);
-  //   if ((access(buf, F_OK | X_OK) == 0)) {
-  //     // execvp(buf, args); // searches PATH for executables then executes.
-  //     execv(buf, args); // have to provide full PATH of executables.
-  //     found = true;
-  //     break;
-  //   }
-  // }
-  //
-  // if (!found) {
-  //   printf("%s: command not found\n", command);
-  // }
-  //
-  // free(path);
+  if (!found) {
+    printf("%s: command not found\n", command);
+  }
 }
 
 int main() {
@@ -113,9 +107,9 @@ int main() {
     char *token = strtok(input, " ");
     char *command = token;
     char *arguments = strtok(NULL, "");
-    printf("command: %s\n", command);
-    printf("args: %s\n", arguments);
-    printf("----------\n");
+    // printf("command: %s\n", command);
+    // printf("args: %s\n", arguments);
+    // printf("----------\n");
 
     if ((strcmp(command, "exit") == 0)) {
       exit = true;
@@ -145,7 +139,7 @@ int main() {
       }
 
     } else {
-      run_exec(command);
+      run_exec(command, arguments);
     }
   }
 
