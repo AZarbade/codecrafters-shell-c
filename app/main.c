@@ -115,6 +115,10 @@ int main() {
     } else if ((strcmp(command, "echo") == 0)) {
       printf("%s\n", arguments);
 
+    } else if ((strcmp(command, "pwd") == 0)) {
+      char cwd[100];
+      printf("%s\n", getcwd(cwd, sizeof(cwd)));
+
     } else if ((strcmp(command, "type") == 0)) {
       if (arguments == NULL) {
         printf("- usage: type <command>\n");
