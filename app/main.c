@@ -119,6 +119,11 @@ int main() {
       char cwd[100];
       printf("%s\n", getcwd(cwd, sizeof(cwd)));
 
+    } else if ((strcmp(command, "cd") == 0)) {
+      if (chdir(arguments) != 0) {
+        printf("%s: %s: No such file or directory\n", command, arguments);
+      }
+
     } else if ((strcmp(command, "type") == 0)) {
       if (arguments == NULL) {
         printf("- usage: type <command>\n");
